@@ -1,6 +1,7 @@
 import express from 'express';
 import axios from 'axios';
 import dotenv from 'dotenv';
+import { verifyPayment } from '@x402/evm';
 
 dotenv.config();
 
@@ -422,11 +423,34 @@ function generateMockForecast(location, days = 3) {
 }
 
 // Current weather endpoint with payment requirement
-app.get('/api/current', (req, res) => {
+app.get('/api/current', async (req, res) => {
   const paymentProof = req.headers['x-payment-proof'];
 
   if (!paymentProof) {
     return paymentRequired(res);
+  }
+
+  // Verify payment on-chain
+  try {
+    const isValidPayment = await verifyPayment({
+      proof: paymentProof,
+      expectedAmount: PAYMENT_CONFIG.price,
+      expectedCurrency: PAYMENT_CONFIG.currency,
+      expectedRecipient: PAYMENT_CONFIG.payTo,
+      chainId: PAYMENT_CONFIG.chainId
+    });
+
+    if (!isValidPayment) {
+      return res.status(402).json({
+        error: 'Payment verification failed',
+        message: 'Invalid or insufficient payment proof'
+      });
+    }
+  } catch (error) {
+    return res.status(402).json({
+      error: 'Payment verification error',
+      message: error.message || 'Could not verify payment'
+    });
   }
 
   const { location } = req.query;
@@ -461,11 +485,34 @@ app.get('/api/current', (req, res) => {
 });
 
 // Weather forecast endpoint with payment requirement
-app.get('/api/forecast', (req, res) => {
+app.get('/api/forecast', async (req, res) => {
   const paymentProof = req.headers['x-payment-proof'];
 
   if (!paymentProof) {
     return paymentRequired(res);
+  }
+
+  // Verify payment on-chain
+  try {
+    const isValidPayment = await verifyPayment({
+      proof: paymentProof,
+      expectedAmount: PAYMENT_CONFIG.price,
+      expectedCurrency: PAYMENT_CONFIG.currency,
+      expectedRecipient: PAYMENT_CONFIG.payTo,
+      chainId: PAYMENT_CONFIG.chainId
+    });
+
+    if (!isValidPayment) {
+      return res.status(402).json({
+        error: 'Payment verification failed',
+        message: 'Invalid or insufficient payment proof'
+      });
+    }
+  } catch (error) {
+    return res.status(402).json({
+      error: 'Payment verification error',
+      message: error.message || 'Could not verify payment'
+    });
   }
 
   const { location, days = 3 } = req.query;
@@ -508,11 +555,34 @@ app.get('/api/forecast', (req, res) => {
 });
 
 // Coordinates-based weather endpoint with payment requirement
-app.get('/api/coordinates', (req, res) => {
+app.get('/api/coordinates', async (req, res) => {
   const paymentProof = req.headers['x-payment-proof'];
 
   if (!paymentProof) {
     return paymentRequired(res);
+  }
+
+  // Verify payment on-chain
+  try {
+    const isValidPayment = await verifyPayment({
+      proof: paymentProof,
+      expectedAmount: PAYMENT_CONFIG.price,
+      expectedCurrency: PAYMENT_CONFIG.currency,
+      expectedRecipient: PAYMENT_CONFIG.payTo,
+      chainId: PAYMENT_CONFIG.chainId
+    });
+
+    if (!isValidPayment) {
+      return res.status(402).json({
+        error: 'Payment verification failed',
+        message: 'Invalid or insufficient payment proof'
+      });
+    }
+  } catch (error) {
+    return res.status(402).json({
+      error: 'Payment verification error',
+      message: error.message || 'Could not verify payment'
+    });
   }
 
   const { lat, lon } = req.query;
