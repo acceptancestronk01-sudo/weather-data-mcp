@@ -1,4 +1,6 @@
 import express from 'express';
+import { createPaymentMiddleware } from './payment-verification.js';
+
 import axios from 'axios';
 import dotenv from 'dotenv';
 
@@ -16,6 +18,10 @@ const PAYMENT_CONFIG = {
   chainId: 'eip155:8453',
   payTo: '0xf081ee84c0d85278a6242bc265f0b312021ebeb1'
 };
+
+// X402 Payment Verification Middleware
+const verifyPayment = createPaymentMiddleware(PAYMENT_CONFIG);
+
 
 // Root landing page
 app.get('/', (req, res) => {
@@ -226,7 +232,7 @@ app.get('/.well-known/x402', (req, res) => {
     payment: {
       scheme: 'exact',
       network: PAYMENT_CONFIG.chainId,
-      price: `$${PAYMENT_CONFIG.price}`,
+      price: '$' + PAYMENT_CONFIG.price,
       currency: PAYMENT_CONFIG.currency,
       payTo: PAYMENT_CONFIG.payTo
     },
@@ -337,22 +343,14 @@ app.get('/health', (req, res) => {
     timestamp: new Date().toISOString(),
     payment: {
       enabled: true,
-      price: `$${PAYMENT_CONFIG.price}`,
+      price: '$' + PAYMENT_CONFIG.price,
       currency: PAYMENT_CONFIG.currency,
       network: PAYMENT_CONFIG.chainId
     }
   });
 });
 
-// Payment required response helper
-function paymentRequired(res) {
-  return res.status(402).json({
-    error: 'Payment Required',
-    message: 'This endpoint requires x402 payment',
-    payment: {
-      scheme: 'exact',
-      network: PAYMENT_CONFIG.chainId,
-      price: `$${PAYMENT_CONFIG.price}`,
+`,
       currency: PAYMENT_CONFIG.currency,
       payTo: PAYMENT_CONFIG.payTo
     },
@@ -422,12 +420,9 @@ function generateMockForecast(location, days = 3) {
 }
 
 // Current weather endpoint with payment requirement
-app.get('/api/current', (req, res) => {
-  const paymentProof = req.headers['payment-signature'] || req.headers['x-payment'];
-
-  if (!paymentProof) {
-    return paymentRequired(res);
-  }
+app.get('/api/current', verifyPayment, async (req, res) => {
+  // Payment verified by middleware - safe to proceed
+  
 
   const { location } = req.query;
 
@@ -461,12 +456,9 @@ app.get('/api/current', (req, res) => {
 });
 
 // Weather forecast endpoint with payment requirement
-app.get('/api/forecast', (req, res) => {
-  const paymentProof = req.headers['payment-signature'] || req.headers['x-payment'];
-
-  if (!paymentProof) {
-    return paymentRequired(res);
-  }
+app.get('/api/forecast', verifyPayment, async (req, res) => {
+  // Payment verified by middleware - safe to proceed
+  
 
   const { location, days = 3 } = req.query;
 
@@ -508,12 +500,9 @@ app.get('/api/forecast', (req, res) => {
 });
 
 // Coordinates-based weather endpoint with payment requirement
-app.get('/api/coordinates', (req, res) => {
-  const paymentProof = req.headers['payment-signature'] || req.headers['x-payment'];
-
-  if (!paymentProof) {
-    return paymentRequired(res);
-  }
+app.get('/api/coordinates', verifyPayment, async (req, res) => {
+  // Payment verified by middleware - safe to proceed
+  
 
   const { lat, lon } = req.query;
 
@@ -535,7 +524,7 @@ app.get('/api/coordinates', (req, res) => {
   }
 
   try {
-    const locationName = `${latitude.toFixed(2)}°, ${longitude.toFixed(2)}°`;
+    const locationName = latitude.toFixed(2) + '°, ' + longitude.toFixed(2) + '°';
     const weatherData = generateMockWeather(locationName);
     weatherData.coordinates = { latitude, longitude };
 
@@ -574,8 +563,8 @@ app.use((req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`Weather Data MCP server running on port ${PORT}`);
-  console.log(`Payment: ${PAYMENT_CONFIG.price} ${PAYMENT_CONFIG.currency} on ${PAYMENT_CONFIG.chainId}`);
+  console.log('Weather Data MCP server running on port ' + PORT);
+  console.log('Payment: ' + PAYMENT_CONFIG.price + ' ' + PAYMENT_CONFIG.currency + ' on ' + PAYMENT_CONFIG.chainId);
 });
 
 export default app;
